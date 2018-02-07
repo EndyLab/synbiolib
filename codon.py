@@ -62,13 +62,12 @@ def codon_table_10plus(table):
 
     return table
 
-def pick_codon(table, aa):
-    return table.ix[x].iloc[((table.ix[x].Fraction).cumsum() < np.random.rand()).sum()].name
-
 def reverse_complement(table, seq):
+    """Return the reverse complement of a DNA sequence."""
     return seq.translate(str.maketrans("ATGC","TACG"))[::-1]
 
 def recode_sequence(table, seq, rep):
+    """Recode a sequence to replace certain sequences, using a given codon table."""
     pos = seq.find(rep)
 
     if pos < 0:
@@ -86,9 +85,21 @@ def recode_sequence(table, seq, rep):
 #             newcodon = choices[choices.index != codon].Fraction.idxmax() # Deterministically allocate codons by using the most frequence one
             break
 
-    eprint("{} -> {}".format(codon, newcodon))
+    logger.warn("{} -> {}".format(codon, newcodon))
 
     return seq[:i] + newcodon + seq[i+3:]
+
+def remove_cutsites(cut_sites, seq):
+    """Remove cutsites from a sequence."""
+    changes = 0
+
+    for enzyme, cut in cut_sites + [(e, reverse_complement(c)) for e, c in cut_sites]:
+        while cut in seq:
+            logger.warn("{} cuts ({})".format(enzyme, cut))
+            changes += 1
+            seq = recode_sequence(seq, cut)
+
+    return seq, changes
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
