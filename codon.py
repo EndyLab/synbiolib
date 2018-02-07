@@ -7,7 +7,8 @@ CODON_USAGE_DB = os.path.dirname(__file__) + "/data/codon_usage.spsum"
 COMMON_SPECIES = {
     'ecoli': "83333",
     'yeast':  "4932",
-    'human': "9606"
+    'human': "9606",
+    'bsub': "1432"
 }
 
 logger = logging.getLogger(__name__)
