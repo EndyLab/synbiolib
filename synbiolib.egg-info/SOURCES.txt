@@ -1,0 +1,8 @@
+README.md
+synbiolib/__init__.py
+synbiolib/codon.py
+synbiolib.egg-info/PKG-INFO
+synbiolib.egg-info/SOURCES.txt
+synbiolib.egg-info/dependency_links.txt
+synbiolib.egg-info/not-zip-safe
+synbiolib.egg-info/top_level.txt

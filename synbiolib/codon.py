@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 import logging
+from functools import lru_cache
 
 CODON_USAGE_DB = os.path.dirname(__file__) + "/data/codon_usage.spsum"
 COMMON_SPECIES = {
@@ -66,6 +67,28 @@ def codon_table_10plus(table):
 def reverse_complement(table, seq):
     """Return the reverse complement of a DNA sequence."""
     return seq.translate(str.maketrans("ATGC","TACG"))[::-1]
+
+def get_codon(table, amino_acid):
+    """Return a 'locally-optimized' codon for a given amino acid based on the single letter code."""
+    
+    logger.debug("Finding codon for amino acid {}".format(amino_acid))
+    
+    #choices = codon_table_10plus(table).loc[amino_acid.upper()]
+    choices = table.loc[amino_acid.upper()]
+    #choices = choices.loc[choices.Fraction >= 0.1]
+    #choices['Fraction'] /= choices['Fraction'].sum()
+    
+    return choices.iloc[(choices.Fraction.cumsum() / choices.Fraction.cumsum().max() < np.random.rand()).sum()].name
+
+def optimize_protein(table, amino_seq):
+    """Optimize a protein sequence into a DNA sequence, for a given table."""
+
+    logger.info("Optimizing sequence {}".format(amino_seq))
+    dna_seq = list()
+    for amino in list(amino_seq.upper()):
+        dna_seq.append(get_codon(table, amino))
+        
+    return "".join(dna_seq)
 
 def recode_sequence(table, seq, rep):
     """Recode a sequence to replace certain sequences, using a given codon table."""
