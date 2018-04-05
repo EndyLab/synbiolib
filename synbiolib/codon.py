@@ -2,9 +2,12 @@ import pandas as pd
 import numpy as np
 import os
 import logging
+from numpy.random import choice
 from functools import lru_cache
 
+
 CODON_USAGE_DB = os.path.dirname(__file__) + "/data/codon_usage.spsum"
+CUSTOM_CODON_USAGE_DB = os.path.dirname(__file__) + "/data/custom_table.spsum"
 COMMON_SPECIES = {
     'ecoli': "83333",
     'yeast':  "4932",
@@ -19,7 +22,7 @@ codons = ['CGA', 'CGC', 'CGG', 'CGT', 'AGA', 'AGG', 'CTA', 'CTC', 'CTG', 'CTT', 
 standard_genetic_code = ['R', 'R', 'R', 'R', 'R', 'R', 'L', 'L', 'L', 'L', 'L', 'L', 'S', 'S', 'S', 'S', 'S', 'S', 'T', 'T', 'T', 'T', 'P', 'P', 'P', 'P', 'A', 'A', 'A', 'A', 'G', 'G', 'G', 'G', 'V', 'V', 'V', 'V', 'K', 'K', 'N', 'N', 'Q', 'Q', 'H', 'H', 'E', 'E', 'D', 'D', 'Y', 'Y', 'C', 'C', 'F', 'F', 'I', 'I', 'I', 'M', 'W', '*', '*', '*']
 tables = dict()
 
-def load_codon_table(species=None, taxonomy_id=None):
+def load_codon_table(species=None, taxonomy_id=None, custom=False):
     """Load a codon table based on the organism's species ID."""
 
     if species in COMMON_SPECIES:
@@ -32,7 +35,11 @@ def load_codon_table(species=None, taxonomy_id=None):
         return tables[taxonomy_id]
 
     logger.debug("Loading codon table from {}.".format(CODON_USAGE_DB))
-    with open(CODON_USAGE_DB) as f:
+    if custom:
+        codon_usage = CUSTOM_CODON_USAGE_DB
+    else:
+        codon_usage = CODON_USAGE_DB
+    with open(codon_usage) as f:
         for header in f:
             codon_counts = f.readline()
 
@@ -102,7 +109,7 @@ def recode_sequence(table, seq, rep):
     for i in range(pos, pos + (len(rep) // 3 + 1) * 3, 3):
         codon = seq[i:i+3]
         choices = codon_table_10plus(table).ix[table.ix[codon]]
-        choices = choices[choices.index != codon]
+        #choices = choices[choices.index != codon]
 
         if choices.shape[0] > 0:
             newcodon = choices.iloc[(choices.Fraction.cumsum() / choices.Fraction.cumsum().max() < np.random.rand()).sum()].name # Stochastically allocate codon
@@ -125,6 +132,22 @@ def remove_cutsites(cut_sites, seq):
 
     return seq, changes
 
+def optimize_protein(table, protein_seq):
+    seq = list(protein_seq.upper())
+    DNA_sequence = []
+    for aa in seq:
+        codons = []
+        fractions = []
+        for index, row in table.iterrows():
+            if index[0] == aa:
+                codons.append(index[1])
+                fractions.append(row["Fraction"])
+        DNA_sequence.append(''.join(choice(codons, 1, p=fractions)) )
+    return ''.join(DNA_sequence)
+
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     import IPython; IPython.embed()
+
